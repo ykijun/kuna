@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>💜쿠나용 경계 알람💜</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(to bottom right, #f3e8ff, #e0cfff);
+      color: #5f4b8b;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    h2 {
+      font-size: 2em;
+      margin-bottom: 20px;
+    }
+
+    p#status {
+      font-size: 1.2em;
+      margin-top: 30px;
+    }
+
+    button {
+      padding: 12px 24px;
+      font-size: 1em;
+      background-color: #a18cd1;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      cursor: pointer;
+      box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+      transition: background-color 0.3s, transform 0.2s;
+    }
+
+    button:hover {
+      background-color: #8f7bb9;
+      transform: translateY(-2px);
+    }
+
+    audio {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h2>💜꾸나랑 경계 가자💜</h2>
+  <button onclick="startAlarm()">알람 시작</button>
+  <p id="status">🕒 대기 중...</p>
+
+  <audio id="alarmSound" src="쿠나_붕붕붕.ogg" preload="auto"></audio>
+
+  <script>
+    const alarmSound = document.getElementById("alarmSound");
+    const statusText = document.getElementById("status");
+
+    let lastTriggeredHour = null;
+    let alarmStarted = false;
+    let lastAlarmTime = null;
+
+    function startAlarm() {
+      if (alarmStarted) return;
+      alarmStarted = true;
+      statusText.textContent = "⏱ 알람 감시 중...";
+
+      setInterval(checkTime, 1000);
+    }
+
+    function checkTime() {
+      const now = new Date();
+      const minutes = now.getMinutes();
+      const seconds = now.getSeconds();
+
+      // 알람 조건: 매 시각의 59분 00초, 중복 방지
+      if (minutes === 58 && seconds === 0 && lastTriggeredHour !== now.getHours()) {
+        lastTriggeredHour = now.getHours();
+        lastAlarmTime = Date.now();
+
+        playAlarm(3);
+
+        const nextHour = (now.getHours() + 1) % 24;
+        const displayHour = `${nextHour}시`;
+        statusText.textContent = `🔔 ${displayHour} 결계갈 시간이다!`;
+
+      } else if (lastAlarmTime && (Date.now() - lastAlarmTime < 10000)) {
+        // 알람 울리고 10초 동안 메시지 유지
+        // 아무것도 안 함: 기존 메시지 유지
+      } else {
+        // 그 외 시간에는 상태 갱신
+        statusText.textContent = `⏳ 대기 중... (${now.toLocaleTimeString()})`;
+      }
+    }
+
+    function playAlarm(times) {
+      let count = 0;
+      alarmSound.volume = 1.0;
+      const interval = setInterval(() => {
+        alarmSound.currentTime = 0;
+        alarmSound.play();
+        count++;
+        if (count >= times) clearInterval(interval);
+      }, 5000); // 5초 간격 반복
+    }
+  </script>
+</body>
+</html>
