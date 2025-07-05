@@ -2,20 +2,15 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>💜쿠나용 경계 알람💜</title>
+  <title>💜쿠나용 방송 유틸💜</title>
   <style>
     body {
       margin: 0;
-      padding: 0;
+      padding: 20px;
       font-family: "Segoe UI", sans-serif;
       background: linear-gradient(to bottom right, #f3e8ff, #e0cfff);
       color: #5f4b8b;
       text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
     }
 
     h2 {
@@ -23,26 +18,41 @@
       margin-bottom: 20px;
     }
 
-    p#status {
-      font-size: 1.2em;
-      margin-top: 30px;
-    }
-
     button {
-      padding: 12px 24px;
-      font-size: 1em;
+      padding: 8px 14px;
+      font-size: 0.9em;
       background-color: #a18cd1;
       border: none;
       border-radius: 10px;
       color: white;
       cursor: pointer;
-      box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
-      transition: background-color 0.3s, transform 0.2s;
+      margin: 4px;
     }
 
     button:hover {
       background-color: #8f7bb9;
-      transform: translateY(-2px);
+    }
+
+    .timer {
+      border: 2px solid #a18cd1;
+      border-radius: 10px;
+      padding: 15px;
+      margin: 15px auto;
+      max-width: 480px;
+      background-color: #ffffffc0;
+    }
+
+    input[type="text"], input[type="number"] {
+      padding: 6px;
+      margin: 4px;
+      width: 60px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .timer-status {
+      margin-top: 10px;
+      font-weight: bold;
     }
 
     audio {
@@ -51,62 +61,93 @@
   </style>
 </head>
 <body>
-  <h2>💜꾸나랑 경계 가자💜</h2>
-  <button onclick="startAlarm()">알람 시작</button>
-  <p id="status">🕒 대기 중...</p>
+  <h2>💜치지직 쿠나 KUNA💜</h2>
+  <button onclick="addTimer()">➕ 타이머 추가</button>
+  <div id="timersContainer"></div>
 
   <audio id="alarmSound" src="쿠나_붕붕붕.ogg" preload="auto"></audio>
 
   <script>
+    const timersContainer = document.getElementById("timersContainer");
     const alarmSound = document.getElementById("alarmSound");
-    const statusText = document.getElementById("status");
 
-    let lastTriggeredHour = null;
-    let alarmStarted = false;
-    let lastAlarmTime = null;
-
-    function startAlarm() {
-      if (alarmStarted) return;
-      alarmStarted = true;
-      statusText.textContent = "⏱ 알람 감시 중...";
-
-      setInterval(checkTime, 1000);
+    function addTimer() {
+      const timerId = `timer_${Date.now()}`;
+      const timerHTML = `
+        <div class="timer" id="${timerId}">
+          <input type="text" placeholder="타이머 제목" class="timer-title" />
+          <div>
+            <input type="number" class="hh" placeholder="시" min="0" />
+            <input type="number" class="mm" placeholder="분" min="0" />
+            <input type="number" class="ss" placeholder="초" min="0" />
+          </div>
+          <button onclick="addMinutes('${timerId}', 10)">+10분</button>
+          <button onclick="addMinutes('${timerId}', 30)">+30분</button>
+          <button onclick="startIndividualTimer('${timerId}')">▶ 시작</button>
+          <p class="timer-status">대기 중</p>
+        </div>
+      `;
+      timersContainer.insertAdjacentHTML('beforeend', timerHTML);
     }
 
-    function checkTime() {
-      const now = new Date();
-      const minutes = now.getMinutes();
-      const seconds = now.getSeconds();
+    function addMinutes(timerId, minutes) {
+      const timer = document.getElementById(timerId);
+      const hh = timer.querySelector(".hh");
+      const mm = timer.querySelector(".mm");
 
-      // 알람 조건: 매 시각의 59분 00초, 중복 방지
-      if (minutes === 58 && seconds === 0 && lastTriggeredHour !== now.getHours()) {
-        lastTriggeredHour = now.getHours();
-        lastAlarmTime = Date.now();
+      let hours = parseInt(hh.value) || 0;
+      let mins = parseInt(mm.value) || 0;
 
-        playAlarm(3);
+      mins += minutes;
 
-        const nextHour = (now.getHours() + 1) % 24;
-        const displayHour = `${nextHour}시`;
-        statusText.textContent = `🔔 ${displayHour} 결계갈 시간이다!`;
-
-      } else if (lastAlarmTime && (Date.now() - lastAlarmTime < 10000)) {
-        // 알람 울리고 10초 동안 메시지 유지
-        // 아무것도 안 함: 기존 메시지 유지
-      } else {
-        // 그 외 시간에는 상태 갱신
-        statusText.textContent = `⏳ 대기 중... (${now.toLocaleTimeString()})`;
+      if (mins >= 60) {
+        hours += Math.floor(mins / 60);
+        mins %= 60;
       }
+
+      hh.value = hours;
+      mm.value = mins;
     }
 
-    function playAlarm(times) {
-      let count = 0;
-      alarmSound.volume = 1.0;
+    function startIndividualTimer(timerId) {
+      const timer = document.getElementById(timerId);
+      const title = timer.querySelector('.timer-title').value || "타이머";
+      const hh = parseInt(timer.querySelector('.hh').value) || 0;
+      const mm = parseInt(timer.querySelector('.mm').value) || 0;
+      const ss = parseInt(timer.querySelector('.ss').value) || 0;
+      const status = timer.querySelector('.timer-status');
+
+      let totalSeconds = hh * 3600 + mm * 60 + ss;
+
+      if (totalSeconds <= 0) {
+        status.textContent = "⛔ 유효한 시간을 입력해주세요.";
+        return;
+      }
+
+      const updateDisplay = () => {
+        let h = Math.floor(totalSeconds / 3600);
+        let m = Math.floor((totalSeconds % 3600) / 60);
+        let s = totalSeconds % 60;
+        status.textContent = `⏳ ${title}: ${String(h).padStart(2, '0')}시간 ${String(m).padStart(2, '0')}분 ${String(s).padStart(2, '0')}초 남음`;
+      };
+
+      updateDisplay();
+
       const interval = setInterval(() => {
-        alarmSound.currentTime = 0;
-        alarmSound.play();
-        count++;
-        if (count >= times) clearInterval(interval);
-      }, 5000); // 5초 간격 반복
+        totalSeconds--;
+        if (totalSeconds <= 0) {
+          clearInterval(interval);
+          status.textContent = `🔔 ${title} 완료!`;
+          playAlarm();
+        } else {
+          updateDisplay();
+        }
+      }, 1000);
+    }
+
+    function playAlarm() {
+      alarmSound.currentTime = 0;
+      alarmSound.play();
     }
   </script>
 </body>
