@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>💜 쿠나 200일 💜</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    /* ✅ 모든 요소가 컨테이너를 넘치지 않도록 */
+    *, *::before, *::after { box-sizing: border-box; }
+
+    :root { --violet:#6d28d9; --bg1:#f5f3ff; --bg2:#ede9fe; --card:#ffffff; }
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,sans-serif;
+      background:linear-gradient(135deg,var(--bg1),var(--bg2));
+      color:#334155
+    }
+    .wrap{max-width:800px;margin:0 auto;padding:20px}
+    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px;flex-wrap:wrap}
+    h1{margin:0;font-size:24px}
+
+    .card{
+      background:var(--card);
+      border-radius:16px;
+      padding:14px;
+      box-shadow:0 8px 30px rgba(0,0,0,.06)
+    }
+    .stack{display:flex;flex-direction:column;gap:12px}
+
+    input[type="text"]{
+      width:100%;
+      border:1px solid #e5e7eb;
+      border-radius:12px;
+      padding:10px;
+      outline:none;
+      min-width:0;           /* flex 컨테이너에서 넘침 방지 */
+    }
+
+    .msg-wrap{
+      background:#fff;
+      border:1px solid #e5e7eb;
+      border-radius:12px;
+      overflow:hidden;
+    }
+    textarea{
+      width:100%;
+      min-height:120px;
+      border:0;
+      outline:none;
+      resize:vertical;
+      padding:12px;
+      font-family:inherit;
+      line-height:1.4;
+      display:block;
+    }
+
+    .actions{
+      display:flex;
+      justify-content:flex-end; /* 👉 바깥 오른쪽 정렬 */
+    }
+    .btn{
+      border:0;
+      padding:10px 14px;
+      border-radius:12px;
+      background:#fff;
+      cursor:pointer;
+      box-shadow:0 1px 3px rgba(0,0,0,.07)
+    }
+    .btn.primary{background:var(--violet);color:#fff}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+
+    .meta{font-size:12px;color:#64748b}
+    ul{list-style:none;padding:0;margin:14px 0 0;display:flex;flex-direction:column;gap:10px}
+    li{display:flex;gap:10px;padding:12px;border-radius:14px;background:#fff;box-shadow:0 1px 8px rgba(0,0,0,.05)}
+    .avatar{width:40px;height:40px;border-radius:50%;background:#ddd;display:grid;place-items:center;font-weight:700;color:#475569}
+    .grow{flex:1;min-width:0}
+    .topline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    footer{margin:24px 0 8px;text-align:center;font-size:12px;color:#94a3b8}
+
+    /* 모바일 개선 */
+    @media (max-width: 420px){
+      header{justify-content:center;text-align:center}
+      h1{font-size:20px}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>💜 쿠나 200일 축하 메시지 💜</h1>
+      <div class="meta">예쁜 응원의 메시지를 남겨주세요!</div>
+    </header>
+
+    <div class="card">
+      <div class="stack">
+        <input id="nick" type="text" maxlength="20" placeholder="닉네임 (필수, 최대 20자)" />
+
+        <div class="msg-wrap">
+          <textarea id="msg" placeholder="응원의 한마디를 남겨주세요 (최대 500자). Ctrl/Cmd + Enter 전송"></textarea>
+        </div>
+
+        <!-- 버튼: 메시지 박스 바깥, 오른쪽 정렬 -->
+        <div class="actions">
+          <button id="send" class="btn primary" title="Ctrl/Cmd + Enter로 전송">남기기</button>
+        </div>
+
+        <p class="meta">예쁜 말만 부탁 드립니다 :)</p>
+      </div>
+    </div>
+
+    <ul id="list"></ul>
+    <div id="bottom"></div>
+
+    <footer>ⓒ <span id="year"></span> KUNA 200days message </footer>
+  </div>
+
+  <!-- Firebase (v10+) CDN: 모듈 방식 -->
+  <script type="module">
+    // ▼▼▼ 1) 본인 Firebase 설정으로 교체하세요 ▼▼▼
+    const firebaseConfig = {
+    apiKey: "AIzaSyA0ZMbcRDb0837Y-pcWtNu7d2Cs17Zevfs",
+    authDomain: "kuna-118cc.firebaseapp.com",
+    projectId: "kuna-118cc",
+    storageBucket: "kuna-118cc.firebasestorage.app",
+    messagingSenderId: "445481439296",
+    appId: "1:445481439296:web:7ac885082b280a09168fa5"
+    };
+    // ▲▲▲ 설정 끝 ▲▲▲
+
+    // Firebase 모듈 (CDN)
+    import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+    import {
+      getFirestore, collection, addDoc, serverTimestamp,
+      onSnapshot, query, orderBy, limit
+    } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+    // 초기화
+    const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // DOM
+    const yearEl = document.getElementById("year");
+    yearEl.textContent = new Date().getFullYear();
+    const nick = document.getElementById("nick");
+    const msg = document.getElementById("msg");
+    const sendBtn = document.getElementById("send");
+    const list = document.getElementById("list");
+    const bottom = document.getElementById("bottom");
+
+    // 직전 닉네임 기억
+    const SAVED_NICK_KEY = "guestbook_nick";
+    const savedNick = localStorage.getItem(SAVED_NICK_KEY);
+    if (savedNick) nick.value = savedNick;
+
+    // 전송
+    async function send() {
+      const name = (nick.value || "").trim();
+      const text = (msg.value || "").trim();
+
+      if (!name) { alert("닉네임을 입력해 주세요."); return; }
+      if (name.length > 20) { alert("닉네임은 최대 20자입니다."); return; }
+      if (!text) { alert("메시지를 입력해 주세요."); return; }
+      if (text.length > 500) { alert("메시지는 최대 500자입니다."); return; }
+
+      sendBtn.disabled = true;
+      try {
+        await addDoc(collection(db, "guestbook"), {
+          text: text.slice(0, 500),
+          name: name.slice(0, 20),
+          createdAt: serverTimestamp(),
+        });
+        localStorage.setItem(SAVED_NICK_KEY, name);
+        msg.value = "";
+        msg.focus();
+        bottom.scrollIntoView({ behavior: "smooth" });
+      } catch (e) {
+        alert(e.message);
+      } finally {
+        sendBtn.disabled = false;
+      }
+    }
+
+    // 렌더(간단 XSS 보호: textContent 사용)
+    function renderItem(data) {
+      const li = document.createElement("li");
+
+      const av = document.createElement("div");
+      av.className = "avatar";
+      av.textContent = (data.name || "익명").slice(0, 1);
+
+      const body = document.createElement("div");
+      body.className = "grow";
+
+      const top = document.createElement("div");
+      top.className = "topline";
+
+      const nameEl = document.createElement("span");
+      nameEl.className = "name";
+      nameEl.textContent = data.name || "익명";
+
+      const timeEl = document.createElement("span");
+      timeEl.className = "meta";
+      timeEl.textContent = "💜";
+
+      top.append(nameEl, timeEl);
+
+      const textEl = document.createElement("p");
+      textEl.style.whiteSpace = "pre-wrap";
+      textEl.style.wordBreak = "break-word";
+      textEl.textContent = data.text || "";
+
+      body.append(top, textEl);
+      li.append(av, body);
+      return li;
+    }
+
+    // 실시간 구독
+    const q = query(
+      collection(db, "guestbook"),
+      orderBy("createdAt", "desc"),
+      limit(50)
+    );
+    onSnapshot(q, (snap) => {
+      list.innerHTML = "";
+      snap.forEach((d) => list.appendChild(renderItem(d.data())));
+    });
+
+    // 이벤트
+    sendBtn.addEventListener("click", send);
+    msg.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        send();
+      }
+    });
+  </script>
+</body>
+</html>
