@@ -169,6 +169,7 @@
         await addDoc(collection(db, "guestbook"), {
           text: text.slice(0, 500),
           name: name.slice(0, 20),
+          createdAt: serverTimestamp(),
         });
         localStorage.setItem(SAVED_NICK_KEY, name);
         msg.value = "";
