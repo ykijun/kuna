@@ -100,7 +100,7 @@
     }
 
     // Firestore 실시간 구독
-    const q=query(collection(db,"guestbook"),orderBy("createdAt","desc"),limit(50));
+    const q=query(collection(db,"guestbook"),orderBy("createdAt","asc"),limit(50));
     onSnapshot(q,(snap)=>{
       list.innerHTML="";
       snap.forEach((doc)=>list.appendChild(renderItem(doc.data())));
