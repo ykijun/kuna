@@ -104,7 +104,6 @@
     onSnapshot(q,(snap)=>{
       list.innerHTML="";
       snap.forEach((doc)=>list.appendChild(renderItem(doc.data())));
-      bottom.scrollIntoView({behavior:"smooth"});
     });
   </script>
 </body>
