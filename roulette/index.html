@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>💜쿠나용 숫자 룰렛💜</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(to bottom right, #f3e8ff, #e0cfff);
+      color: #5f4b8b;
+      text-align: center;
+    }
+
+    h2 {
+      font-size: 2em;
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 8px 14px;
+      font-size: 0.9em;
+      background-color: #a18cd1;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      cursor: pointer;
+      margin: 4px;
+    }
+
+    button:hover {
+      background-color: #8f7bb9;
+    }
+
+    .title-wrapper {
+        display: flex;
+  	flex-direction: column; 
+ 	align-items: center;      
+	justify-content: center;  
+	gap: 10px;               
+	margin-bottom: 20px;
+    }
+
+    .side-image {
+      width: 400px;
+      height: 200px;
+      object-fit: contain;
+    }
+
+  .home-btn {
+      margin-top: -10px;     
+  }
+
+    .roulette-card {
+      border: 2px solid #a18cd1;
+      border-radius: 16px;
+      padding: 20px;
+      margin: 15px auto;
+      max-width: 480px;
+      background-color: #ffffffc0;
+      box-shadow: 0 4px 10px #00000010;
+    }
+
+    .roulette-numbers {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin: 16px 0 10px;
+    }
+
+    .roulette-number {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8em;
+      font-weight: bold;
+      background-color: #ffffff;
+      border: 2px solid #d0b6ff;
+      box-shadow: 0 3px 6px #00000015;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .roulette-number.active {
+      background-color: #a18cd1;
+      color: #fff;
+      border-color: #8f7bb9;
+      transform: scale(1.08);
+      box-shadow: 0 6px 14px #00000030;
+    }
+
+    .roulette-number.spinning {
+      animation: pulse 0.25s linear infinite;
+    }
+
+    @keyframes pulse {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.08); }
+      100% { transform: scale(1); }
+    }
+
+    .result-text {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    .select-buttons {
+      margin-bottom: 15px;
+    }
+
+    .select-btn.active {
+      background-color: #7e60c3;
+      transform: scale(1.05);
+      box-shadow: 0 4px 10px #00000020;
+    }
+
+    .hint-text {
+      font-size: 0.85em;
+      opacity: 0.8;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="title-wrapper">
+    <h2>💜로테이션 룰렛💜</h2>
+    <!-- 🔽 여기 추가된 버튼 -->
+    <button onclick="location.href='https://kunaya.site/'">
+      메인 페이지로 이동
+    </button>
+  </div>
+
+  <div class="roulette-card">
+
+    <!-- 선택 버튼 -->
+    <div class="select-buttons">
+      <button class="select-btn active" data-count="1">숫자 1개 뽑기</button>
+      <button class="select-btn" data-count="2">숫자 2개 뽑기</button>
+    </div>
+
+    <h3>1, 2, 3 중에서<br><span id="countText">1개</span> 랜덤 뽑기 🎲</h3>
+
+    <div class="roulette-numbers">
+      <div class="roulette-number" data-number="1">1</div>
+      <div class="roulette-number" data-number="2">2</div>
+      <div class="roulette-number" data-number="3">3</div>
+    </div>
+
+    <button id="spinButton">🎰 룰렛 돌리기</button>
+
+    <p class="hint-text">
+      로테를 위해 잠시만 비켜주세요! 감사합니다💜
+    </p>
+
+    <p id="resultText" class="result-text">결과를 기다리는 중…</p>
+  </div>
+
+  <script>
+    const spinButton = document.getElementById("spinButton");
+    const resultText = document.getElementById("resultText");
+    const numberEls = document.querySelectorAll(".roulette-number");
+    const countText = document.getElementById("countText");
+
+    const selectButtons = document.querySelectorAll(".select-btn");
+    let selectedCount = 1; // 기본값 1개
+
+    // 선택 버튼 기능
+    selectButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        selectButtons.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        selectedCount = Number(btn.dataset.count);
+        countText.textContent = selectedCount + "개";
+      });
+    });
+
+    function clearHighlights() {
+      numberEls.forEach(el => {
+        el.classList.remove("active");
+        el.classList.remove("spinning");
+      });
+    }
+
+    function getRandomResult() {
+      const numbers = [1, 2, 3];
+
+      // 셔플
+      for (let i = numbers.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
+      }
+
+      return numbers.slice(0, selectedCount).sort((a, b) => a - b);
+    }
+
+    spinButton.addEventListener("click", () => {
+      if (spinButton.disabled) return;
+
+      spinButton.disabled = true;
+      resultText.textContent = "돌리는 중... ✨";
+
+      clearHighlights();
+
+      let ticks = 0;
+      const maxTicks = 10;
+      const spinInterval = setInterval(() => {
+        clearHighlights();
+        const randomIndex = Math.floor(Math.random() * numberEls.length);
+        numberEls[randomIndex].classList.add("spinning");
+        ticks++;
+
+        if (ticks >= maxTicks) {
+          clearInterval(spinInterval);
+
+          const picked = getRandomResult();
+          clearHighlights();
+
+          numberEls.forEach(el => {
+            const num = Number(el.dataset.number);
+            if (picked.includes(num)) {
+              el.classList.add("active");
+            }
+          });
+
+          resultText.textContent =
+            `✨ 결과:  [ ${picked.join(", ")}번 아웃! ]`;
+
+          spinButton.disabled = false;
+        }
+      }, 120);
+    });
+  </script>
+</body>
+</html>
