@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>💜 쿠나 사다리타기 💜</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(to bottom right, #f3e8ff, #e0cfff);
+      color: #5f4b8b;
+      text-align: center;
+    }
+
+    h2 {
+      font-size: 2em;
+      margin-bottom: 20px;
+    }
+
+    button, select {
+      padding: 8px 14px;
+      font-size: 0.95em;
+      background-color: #a18cd1;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      cursor: pointer;
+      margin: 4px;
+    }
+
+    button:hover, select:hover {
+      background-color: #8f7bb9;
+    }
+
+    input[type="text"], textarea {
+      padding: 8px;
+      margin: 4px;
+      border: 1px solid #d8c7f7;
+      border-radius: 8px;
+      background: #fffdfefe;
+      color: #5f4b8b;
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 0.95em;
+    }
+
+    textarea {
+      min-height: 180px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+
+    .title-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .toolbar {
+      margin-bottom: 14px;
+    }
+
+    .board-actions {
+      margin-top: 12px;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: 1fr 1.3fr 1fr;
+      gap: 16px;
+      align-items: start;
+      max-width: 1500px;
+      margin: 0 auto;
+    }
+
+    .card {
+      border: 2px solid #a18cd1;
+      border-radius: 18px;
+      padding: 16px;
+      background-color: rgba(255, 255, 255, 0.78);
+      box-shadow: 0 8px 24px rgba(132, 100, 188, 0.12);
+    }
+
+    .card h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      color: #6b57a3;
+    }
+
+    .hint {
+      font-size: 0.9em;
+      color: #7965ad;
+      margin: 6px 0 0;
+    }
+
+    .canvas-wrap {
+      display: flex;
+      justify-content: center;
+      margin-top: 10px;
+      overflow-x: auto;
+    }
+
+    canvas {
+      background: rgba(255,255,255,0.7);
+      border-radius: 16px;
+      border: 2px dashed #ccb8f1;
+      max-width: 100%;
+    }
+
+    .result-box {
+      margin-top: 14px;
+      min-height: 88px;
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.8);
+      border: 1px solid #d6c2f8;
+      line-height: 1.8;
+      white-space: pre-line;
+    }
+
+    .result-line {
+      margin: 4px 0;
+      font-weight: 600;
+    }
+
+    .footer-note {
+      margin-top: 14px;
+      font-size: 0.9em;
+      color: #7b67ad;
+    }
+
+    @media (max-width: 1100px) {
+      .board {
+        grid-template-columns: 1fr;
+      }
+
+      .title-wrapper {
+        gap: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="title-wrapper">
+    <h2>💜 쿠나 사다리타기 💜</h2>
+    <button onclick="location.href='https://kunakaza.site/'">메인 페이지로 이동</button>
+  </div>
+
+  <div class="toolbar">
+    <select id="countSelect" onchange="applyCountTemplate()">
+      <option value="2">2명</option>
+      <option value="3">3명</option>
+      <option value="4" selected>4명</option>
+      <option value="5">5명</option>
+      <option value="6">6명</option>
+      <option value="7">7명</option>
+      <option value="8">8명</option>
+    </select>
+    <button onclick="generateLadder()">🪜 사다리 생성</button>
+  </div>
+
+  <div class="board">
+    <div class="card">
+      <h3>참가자</h3>
+      <textarea id="participantsInput" placeholder="한 줄에 한 명씩 입력&#10;예시&#10;쿠나&#10;시청자1&#10;시청자2&#10;시청자3"></textarea>
+      <p class="hint">엔터로 참가자 구분하기!</p>
+    </div>
+
+    <div class="card">
+      <h3>사다리 보드</h3>
+      <div class="canvas-wrap">
+        <canvas id="ladderCanvas" width="700" height="760"></canvas>
+      </div>
+      <div class="board-actions">
+        <button onclick="revealNext()">🎯 한 명씩 공개</button>
+        <button onclick="revealAll()">💜 전체 공개</button>
+        <button onclick="shuffleOnly()">🔀 다시 섞기</button>
+      </div>
+      <div id="resultBox" class="result-box">사다리를 생성하면 결과가 여기에 표시됩니다.</div>
+      <div class="footer-note">한명씩 공개 (한번씩 + 애니메이션), 전체 공개 (한번에 결과만)</div>
+    </div>
+
+    <div class="card">
+      <h3>결과</h3>
+      <textarea id="resultsInput" placeholder="한 줄에 한 개씩 입력&#10;예시&#10;당첨&#10;꽝&#10;벌칙&#10;면제"></textarea>
+      <p class="hint">참가자 수랑 동일하게 만들기 (당첨 옵션)</p>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('ladderCanvas');
+    const ctx = canvas.getContext('2d');
+    const participantsInput = document.getElementById('participantsInput');
+    const resultsInput = document.getElementById('resultsInput');
+    const countSelect = document.getElementById('countSelect');
+    const resultBox = document.getElementById('resultBox');
+
+    let ladderState = null;
+    let revealOrder = [];
+    let revealIndex = 0;
+    let animating = false;
+
+    function applyCountTemplate() {
+      const count = parseInt(countSelect.value, 10);
+      const defaultNames = Array.from({ length: count }, (_, i) => `참가자 ${i + 1}`);
+      const defaultResults = Array.from({ length: count }, (_, i) => i === 0 ? '당첨' : `결과 ${i + 1}`);
+
+      participantsInput.value = defaultNames.join('\n');
+      resultsInput.value = defaultResults.join('\n');
+      clearCanvasMessage();
+      drawPlaceholder(count);
+      resultBox.textContent = '결과 확인창';
+      ladderState = null;
+      revealOrder = [];
+      revealIndex = 0;
+    }
+
+    function clearCanvasMessage() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function drawPlaceholder(count) {
+      clearCanvasMessage();
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#7d67b4';
+      ctx.font = 'bold 28px Segoe UI';
+      ctx.textAlign = 'center';
+      ctx.fillText(`현재 인원: ${count}명`, canvas.width / 2, 120);
+      ctx.font = '20px Segoe UI';
+      ctx.fillText('"사다리 생성" 버튼을 눌러 시작하세요.', canvas.width / 2, 170);
+      ctx.restore();
+    }
+
+    function getLines(text) {
+      return text
+        .split('\n')
+        .map(v => v.trim())
+        .filter(Boolean);
+    }
+
+    function generateLadder() {
+      const participants = getLines(participantsInput.value);
+      const results = getLines(resultsInput.value);
+
+      if (participants.length < 2) {
+        resultBox.textContent = '참가자는 최소 2명 이상 입력해주세요.';
+        return;
+      }
+
+      if (participants.length !== results.length) {
+        resultBox.textContent = '참가자 수와 결과 수를 같게 맞춰주세요.';
+        return;
+      }
+
+      const count = participants.length;
+      countSelect.value = String(count);
+
+      const marginX = 90;
+      const topY = 90;
+      const bottomY = canvas.height - 90;
+      const spacingX = count === 1 ? 0 : (canvas.width - marginX * 2) / (count - 1);
+      const rows = Math.max(10, Math.min(18, count * 2 + 6));
+      const rowGap = (bottomY - topY) / rows;
+      const verticals = Array.from({ length: count }, (_, i) => marginX + i * spacingX);
+      const horizontals = [];
+
+      for (let row = 1; row < rows; row++) {
+        let prevUsed = false;
+        for (let col = 0; col < count - 1; col++) {
+          if (prevUsed) {
+            prevUsed = false;
+            continue;
+          }
+          if (Math.random() < 0.38) {
+            horizontals.push({
+              from: col,
+              to: col + 1,
+              y: topY + row * rowGap
+            });
+            prevUsed = true;
+          }
+        }
+      }
+
+      const mapping = [];
+      const paths = [];
+      for (let i = 0; i < count; i++) {
+        const info = tracePath(i, verticals, horizontals, topY, bottomY);
+        mapping.push(info.endColumn);
+        paths.push(info.points);
+      }
+
+      ladderState = {
+        participants,
+        results,
+        verticals,
+        horizontals,
+        topY,
+        bottomY,
+        mapping,
+        paths,
+      };
+
+      revealOrder = participants.map((_, i) => i);
+      revealIndex = 0;
+      resultBox.textContent = '사다리가 생성되었습니다. 한 명씩 공개하거나 전체 공개를 눌러주세요.';
+      drawBoard();
+    }
+
+    function tracePath(startIndex, verticals, horizontals, topY, bottomY) {
+      const sorted = [...horizontals].sort((a, b) => a.y - b.y);
+      let col = startIndex;
+      let currentY = topY;
+      const points = [{ x: verticals[col], y: topY }];
+
+      for (const h of sorted) {
+        if (h.from === col || h.to === col) {
+          points.push({ x: verticals[col], y: h.y });
+          col = h.from === col ? h.to : h.from;
+          points.push({ x: verticals[col], y: h.y });
+          currentY = h.y;
+        }
+      }
+
+      if (currentY !== bottomY) {
+        points.push({ x: verticals[col], y: bottomY });
+      }
+
+      return { endColumn: col, points };
+    }
+
+    function drawBoard(highlightPath = null, highlightColor = '#ff7ac8') {
+      if (!ladderState) {
+        drawPlaceholder(parseInt(countSelect.value, 10));
+        return;
+      }
+
+      const { participants, results, verticals, horizontals, topY, bottomY, mapping } = ladderState;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      gradient.addColorStop(0, 'rgba(255,255,255,0.86)');
+      gradient.addColorStop(1, 'rgba(245,236,255,0.92)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 18px Segoe UI';
+      participants.forEach((name, i) => {
+        ctx.fillStyle = '#6b57a3';
+        ctx.fillText(name, verticals[i], 42);
+      });
+
+      results.forEach((label, i) => {
+        ctx.fillStyle = '#8a5fd3';
+        ctx.fillText(label, verticals[i], canvas.height - 24);
+      });
+
+      ctx.strokeStyle = '#ae96dd';
+      ctx.lineWidth = 4;
+      verticals.forEach(x => {
+        ctx.beginPath();
+        ctx.moveTo(x, topY);
+        ctx.lineTo(x, bottomY);
+        ctx.stroke();
+      });
+
+      ctx.strokeStyle = '#c084e8';
+      ctx.lineWidth = 6;
+      horizontals.forEach(h => {
+        ctx.beginPath();
+        ctx.moveTo(verticals[h.from], h.y);
+        ctx.lineTo(verticals[h.to], h.y);
+        ctx.stroke();
+      });
+
+
+      if (highlightPath && highlightPath.length > 1) {
+        ctx.strokeStyle = highlightColor;
+        ctx.lineWidth = 8;
+        ctx.shadowColor = 'rgba(255, 122, 200, 0.6)';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.moveTo(highlightPath[0].x, highlightPath[0].y);
+        for (let i = 1; i < highlightPath.length; i++) {
+          ctx.lineTo(highlightPath[i].x, highlightPath[i].y);
+        }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+    }
+
+    function animatePath(points, callback) {
+      if (!points || points.length < 2) {
+        callback?.();
+        return;
+      }
+
+      animating = true;
+      let segmentIndex = 0;
+      let progress = 0;
+      const speed = 5;
+      const traveled = [points[0]];
+
+      function frame() {
+        drawBoard(traveled);
+
+        if (segmentIndex >= points.length - 1) {
+          animating = false;
+          callback?.();
+          return;
+        }
+
+        const from = points[segmentIndex];
+        const to = points[segmentIndex + 1];
+        const dx = to.x - from.x;
+        const dy = to.y - from.y;
+        const dist = Math.hypot(dx, dy);
+        progress += speed;
+
+        if (progress >= dist) {
+          traveled.push(to);
+          segmentIndex++;
+          progress = 0;
+        } else {
+          const ratio = progress / dist;
+          traveled[traveled.length - 1] = {
+            x: from.x + dx * ratio,
+            y: from.y + dy * ratio
+          };
+          if (traveled.length === 1) {
+            traveled.push({ ...traveled[0] });
+          }
+        }
+
+        requestAnimationFrame(frame);
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    function revealNext() {
+      if (!ladderState) {
+        resultBox.textContent = '먼저 사다리를 생성해주세요.';
+        return;
+      }
+      if (animating) return;
+      if (revealIndex >= revealOrder.length) {
+        resultBox.textContent += '\n\n모든 참가자의 결과가 공개되었습니다.';
+        return;
+      }
+
+      const start = revealOrder[revealIndex];
+      const end = ladderState.mapping[start];
+      const name = ladderState.participants[start];
+      const result = ladderState.results[end];
+      const message = `💜 ${name} → ${result}`;
+
+      animatePath(ladderState.paths[start], () => {
+        const previous = resultBox.textContent.includes('사다리가 생성되었습니다') || resultBox.textContent.includes('사다리를 생성하면')
+          ? ''
+          : resultBox.textContent.trim();
+        resultBox.textContent = previous ? `${previous}\n${message}` : message;
+        revealIndex++;
+      });
+    }
+
+    function revealAll() {
+      if (!ladderState) {
+        resultBox.textContent = '먼저 사다리를 생성해주세요.';
+        return;
+      }
+
+      const lines = ladderState.participants.map((name, start) => {
+        const end = ladderState.mapping[start];
+        return `💜 ${name} → ${ladderState.results[end]}`;
+      });
+      resultBox.textContent = lines.join('\n');
+      drawBoard();
+      revealIndex = revealOrder.length;
+    }
+
+    function shuffleOnly() {
+      if (!ladderState) {
+        generateLadder();
+        return;
+      }
+      generateLadder();
+    }
+
+
+    applyCountTemplate();
+  </script>
+</body>
+</html>
